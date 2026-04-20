@@ -1,0 +1,77 @@
+# Project rules for Cursor
+
+These are the default working rules for this project. Follow them unless the
+user explicitly overrides them in a given conversation.
+
+## Code quality
+
+- Write clean, readable code. Favor clarity over cleverness.
+- Use descriptive names for variables, functions, files, and types. Avoid
+  abbreviations unless they are well-established (e.g. `id`, `url`).
+- Add comments where they add value: explain *why* something is done, trade-offs,
+  non-obvious constraints, or links to relevant issues/docs.
+- Do NOT add comments that just narrate *what* the code does (e.g.
+  `// increment counter`). Let the code speak for itself.
+- Keep functions small and focused. If a function is doing more than one thing,
+  split it.
+
+## Language and typing
+
+- If the project uses JavaScript in any capacity, use **TypeScript** instead.
+  New `.js`/`.jsx` files should be `.ts`/`.tsx`.
+- Prefer `strict` TypeScript settings. Avoid `any`; use `unknown` + narrowing,
+  generics, or precise types instead.
+- Model data with explicit types/interfaces at module boundaries (API
+  responses, function params, exported return types).
+
+## Patterns and style
+
+- Prefer **functional patterns**:
+  - Pure functions when possible.
+  - Immutability by default (`const`, spread/rest, `readonly`).
+  - `map` / `filter` / `reduce` over imperative loops when it improves clarity.
+  - Composition over inheritance.
+- Prefer early returns to deeply nested conditionals.
+- Avoid shared mutable state; isolate side effects.
+- Handle errors explicitly. Don't swallow exceptions silently.
+
+## File organization
+
+- Keep files **small and focused**. Target <~200 lines; split when they grow
+  beyond that.
+- One primary export per file where reasonable. Co-locate tightly related
+  helpers; extract anything reused elsewhere.
+- Group files by feature/domain rather than by technical type when the
+  project grows.
+- Keep directory structures shallow and predictable.
+
+## Collaboration and decisions
+
+- **Ask clarifying questions before making big architectural decisions.**
+  Examples of decisions that warrant a question first:
+  - Choosing a framework, runtime, or language.
+  - Adding a new top-level dependency or service (DB, queue, auth provider).
+  - Introducing a new architectural pattern (e.g. monorepo, microservices,
+    state management library).
+  - Changing data models, public APIs, or shared interfaces.
+  - Large refactors across many files.
+- For small, local, reversible changes, proceed without asking.
+- When asking, present the trade-offs briefly and recommend a default.
+
+## Dependencies
+
+- Don't add dependencies casually. Prefer the standard library or existing
+  project utilities first.
+- When a dependency is needed, pick well-maintained, widely-used options and
+  note *why* in the PR/commit.
+
+## Testing
+
+- For non-trivial logic, add or update tests alongside the change.
+- Tests should be small, deterministic, and describe behavior, not
+  implementation details.
+
+## Commits and changes
+
+- Make focused changes. Don't mix unrelated refactors into feature work.
+- Don't commit secrets, `.env` files, or generated artifacts.
