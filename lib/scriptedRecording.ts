@@ -28,6 +28,87 @@ export interface ReviewFollowUp {
   answerKey: string;
 }
 
+export interface StepDetail {
+  /** Same id as the corresponding RecordingNode. */
+  id: string;
+  /** A 1-2 sentence summary of what the step does, in Pearl&rsquo;s voice. */
+  summary: string;
+  /** When this step fires in the flow. */
+  when: string;
+  /** What actually happens — the concrete action. */
+  what: string;
+  /** If set to "you", Pearl stops here and hands it back to the user. */
+  handler?: "pearl" | "you";
+  /** The app Pearl is acting inside of for this step (for UI labels). */
+  app?: "slack" | "finder" | "excel" | "quickbooks";
+}
+
+export const STEP_DETAILS: Record<string, StepDetail> = {
+  n1: {
+    id: "n1",
+    summary:
+      "I&rsquo;ll watch your Slack for new PDF invoices and grab each one as it comes in.",
+    when: "A PDF is posted in #invoices-ai-tools",
+    what: "Pearl downloads the attachment and moves on.",
+    handler: "pearl",
+    app: "slack",
+  },
+  n2: {
+    id: "n2",
+    summary:
+      "I keep a copy so you always have the original on hand.",
+    when: "Right after I pull it from Slack",
+    what: "Saved to Documents › Invoices › AI tools with today&rsquo;s date.",
+    handler: "pearl",
+    app: "finder",
+  },
+  n3: {
+    id: "n3",
+    summary:
+      "A fresh row goes into your ledger with the vendor, amount, and date from the PDF.",
+    when: "Once the PDF is saved",
+    what: "Appends a row to invoices.xlsx.",
+    handler: "pearl",
+    app: "excel",
+  },
+  n4: {
+    id: "n4",
+    summary:
+      "I set the status so you can see at a glance which invoices still need to clear.",
+    when: "After the row is logged",
+    what: "Sets the Status column to Unpaid.",
+    handler: "pearl",
+    app: "excel",
+  },
+  n5: {
+    id: "n5",
+    summary:
+      "I drop the saved PDF into the Receipt column so the row matches the paper trail.",
+    when: "Right after marking unpaid",
+    what: "Attaches the invoice PDF to the new row.",
+    handler: "pearl",
+    app: "excel",
+  },
+  n6: {
+    id: "n6",
+    summary:
+      "I open QuickBooks and navigate to a fresh expense entry, scoped to your Ops card.",
+    when: "Once the ledger is updated",
+    what: "Opens the New Expense dialog.",
+    handler: "pearl",
+    app: "quickbooks",
+  },
+  n7: {
+    id: "n7",
+    summary:
+      "This is where I hand it back to you. I&rsquo;ll fill the form, you give it a final look and hit Save.",
+    when: "After Pearl preps the fields",
+    what: "You review the entry and click Save and close.",
+    handler: "you",
+    app: "quickbooks",
+  },
+};
+
 /**
  * Vertical flow positions (in the tucked-right recording panel).
  * React Flow uses top-left origin so y increases downward. x is fixed so the

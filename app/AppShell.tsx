@@ -9,6 +9,7 @@ import { MenuBar } from "@/components/MenuBar";
 import { MockRecordingDesktop } from "@/components/recording/MockRecordingDesktop";
 import { HomeScreen } from "@/components/screens/HomeScreen";
 import { InputMethodScreen } from "@/components/screens/InputMethodScreen";
+import { IntegrationsScreen } from "@/components/screens/IntegrationsScreen";
 import { PreparationScreen } from "@/components/screens/PreparationScreen";
 import { RecordingScreen } from "@/components/screens/RecordingScreen";
 import { ReviewScreen } from "@/components/screens/ReviewScreen";
@@ -43,7 +44,8 @@ type ScreenId =
   | "input"
   | "prep"
   | "recording"
-  | "review";
+  | "review"
+  | "integrations";
 
 const SCREEN_ORDER: ScreenId[] = [
   "launcher",
@@ -52,6 +54,7 @@ const SCREEN_ORDER: ScreenId[] = [
   "prep",
   "recording",
   "review",
+  "integrations",
 ];
 
 interface WindowLayout {
@@ -64,10 +67,10 @@ interface WindowLayout {
 }
 
 const WINDOW_LAYOUT: Record<ScreenId, WindowLayout> = {
-  launcher: { width: 440, height: 640, dock: "center", chrome: true },
-  home: { width: 440, height: 680, dock: "center", chrome: true },
-  input: { width: 440, height: 680, dock: "center", chrome: true },
-  prep: { width: 440, height: 680, dock: "center", chrome: true },
+  launcher: { width: 720, height: 520, dock: "center", chrome: true },
+  home: { width: 720, height: 520, dock: "center", chrome: true },
+  input: { width: 680, height: 440, dock: "center", chrome: true },
+  prep: { width: 720, height: 520, dock: "center", chrome: true },
   recording: {
     width: 340,
     height: 560,
@@ -75,11 +78,15 @@ const WINDOW_LAYOUT: Record<ScreenId, WindowLayout> = {
     chrome: true,
     recording: true,
   },
-  review: { width: 820, height: 620, dock: "center", chrome: true },
+  review: { width: 740, height: 580, dock: "center", chrome: true },
+  integrations: { width: 620, height: 520, dock: "center", chrome: true },
 };
 
 function AppShell() {
   const [screen, setScreen] = useState<ScreenId>("launcher");
+  // "Have we introduced Pearl yet this session?" — drives the first-time
+  // popover on the recording screen.
+  const [pearlIntroSeen, setPearlIntroSeen] = useState(false);
 
   const goTo = useCallback((next: ScreenId) => setScreen(next), []);
 
@@ -133,11 +140,19 @@ function AppShell() {
           <RecordingScreen
             onReview={() => goTo("review")}
             onBack={() => goTo("prep")}
+            showPearlIntro={!pearlIntroSeen}
+            onDismissPearlIntro={() => setPearlIntroSeen(true)}
           />
         )}
         {screen === "review" && (
           <ReviewScreen
             onBack={() => goTo("recording")}
+            onContinue={() => goTo("integrations")}
+          />
+        )}
+        {screen === "integrations" && (
+          <IntegrationsScreen
+            onBack={() => goTo("review")}
             onSaved={() => goTo("home")}
           />
         )}
@@ -206,5 +221,7 @@ function screenLabel(id: ScreenId): string {
       return "Recording";
     case "review":
       return "Review";
+    case "integrations":
+      return "Connect";
   }
 }

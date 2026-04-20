@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   RECORDING_DURATION_MS,
@@ -13,6 +13,8 @@ export interface ScriptedRecordingState {
   isComplete: boolean;
   /** 0 – 1 progress through the full recording timeline. */
   progress: number;
+  /** Wipes all captured steps and starts the timer over. */
+  reset: () => void;
 }
 
 function prefersReducedMotion(): boolean {
@@ -24,23 +26,38 @@ function prefersReducedMotion(): boolean {
 
 /**
  * Drives the recording screen. A polling interval advances the
- * visible-node set by wall-clock time. The state is initialized from the
- * reduced-motion media query so those users skip directly to the end
- * without setting state inside an effect.
+ * visible-node set by wall-clock time. Pausing is implemented by passing
+ * `enabled=false`: the effect tears down the interval and elapsedMs is
+ * preserved so resume continues from where it left off. Resetting wipes
+ * the captured state and restarts the timer via a nonce bump.
  */
 export function useScriptedRecording(enabled: boolean): ScriptedRecordingState {
   const [elapsedMs, setElapsedMs] = useState<number>(() =>
     prefersReducedMotion() ? RECORDING_DURATION_MS : 0,
   );
+  const [runKey, setRunKey] = useState(0);
+
+  // Mirror the latest elapsedMs into a ref so the interval effect can
+  // resume from the current value on pause/resume without re-subscribing
+  // every tick.
+  const elapsedRef = useRef(elapsedMs);
+  useEffect(() => {
+    elapsedRef.current = elapsedMs;
+  });
 
   useEffect(() => {
     if (!enabled) return;
     if (prefersReducedMotion()) return;
+    if (elapsedRef.current >= RECORDING_DURATION_MS) return;
 
-    const start = performance.now();
+    const startWall = performance.now();
+    const startElapsed = elapsedRef.current;
     const interval = window.setInterval(() => {
       const now = performance.now();
-      const next = Math.min(now - start, RECORDING_DURATION_MS);
+      const next = Math.min(
+        startElapsed + (now - startWall),
+        RECORDING_DURATION_MS,
+      );
       setElapsedMs(next);
       if (next >= RECORDING_DURATION_MS) {
         window.clearInterval(interval);
@@ -48,7 +65,15 @@ export function useScriptedRecording(enabled: boolean): ScriptedRecordingState {
     }, 100);
 
     return () => window.clearInterval(interval);
-  }, [enabled]);
+  }, [enabled, runKey]);
+
+  const reset = useCallback(() => {
+    // Intentional: reset() is a user-driven action, not a reactive update.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setElapsedMs(0);
+    elapsedRef.current = 0;
+    setRunKey((k) => k + 1);
+  }, []);
 
   return useMemo<ScriptedRecordingState>(() => {
     const visibleNodeIds = new Set(
@@ -59,6 +84,7 @@ export function useScriptedRecording(enabled: boolean): ScriptedRecordingState {
       elapsedMs,
       isComplete: elapsedMs >= RECORDING_DURATION_MS,
       progress: Math.min(1, elapsedMs / RECORDING_DURATION_MS),
+      reset,
     };
-  }, [elapsedMs]);
+  }, [elapsedMs, reset]);
 }

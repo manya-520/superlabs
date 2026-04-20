@@ -34,9 +34,9 @@ export function FloatingWindow({
   const constraintsRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
 
-  // For the centered dock we bias slightly right of true-center so the
-  // simulated desktop icons on the far left stay visible. The bias is
-  // clamped so wider windows can&rsquo;t overflow the viewport.
+  // Center dock keeps the window horizontally centered and stays within the
+  // viewport on narrower windows. Right dock pins the window to the right
+  // edge for the "tucked" recording state.
   const positionStyle =
     dock === "right"
       ? {
@@ -45,7 +45,7 @@ export function FloatingWindow({
         }
       : {
           top: `calc(50% - ${height / 2}px + 14px)`,
-          left: `clamp(16px, calc(50% - ${width / 2}px + 40px), calc(100% - ${width}px - 16px))`,
+          left: `clamp(16px, calc(50% - ${width / 2}px), calc(100% - ${width}px - 16px))`,
         };
 
   return (
@@ -56,6 +56,11 @@ export function FloatingWindow({
         aria-hidden
       />
       <motion.div
+        // Keying by dock force-remounts the window when we switch between
+        // center and right docks. Without this, framer-motion keeps its
+        // internal drag transform around from the previous position and the
+        // element never actually moves to the new anchor.
+        key={dock}
         role="application"
         aria-label="Superlabs window"
         aria-hidden={hidden}
@@ -68,12 +73,12 @@ export function FloatingWindow({
         initial={false}
         animate={
           hidden
-            ? { opacity: 0, scale: 0.82, pointerEvents: "none", width, height }
-            : { opacity: 1, scale: 1, pointerEvents: "auto", width, height }
+            ? { opacity: 0, scale: 0.82, pointerEvents: "none" }
+            : { opacity: 1, scale: 1, pointerEvents: "auto" }
         }
         transition={{ type: "spring", stiffness: 220, damping: 26 }}
-        className="glass absolute z-[10] overflow-hidden rounded-2xl text-[color:var(--text-1)]"
-        style={positionStyle}
+        className={`${recording ? "glass-strong" : "glass"} absolute z-[10] overflow-hidden rounded-2xl text-[color:var(--text-1)]`}
+        style={{ ...positionStyle, width, height }}
       >
         <div className="flex h-full flex-col">
           {chrome && (
