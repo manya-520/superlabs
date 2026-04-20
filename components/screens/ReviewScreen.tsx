@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import ReactFlow, {
   Background,
   type Edge,
@@ -16,7 +16,6 @@ import {
   type FlowchartNodeData,
 } from "@/components/ui/FlowchartNode";
 import { GradientButton } from "@/components/ui/GradientButton";
-import { NodeEditPanel } from "@/components/ui/NodeEditPanel";
 import { useToast } from "@/components/ui/Toast";
 import { REVIEW_FOLLOWUPS } from "@/lib/scriptedRecording";
 import { ReviewProvider, useReview } from "@/lib/reviewStore";
@@ -43,16 +42,8 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
     freeText,
     setFreeText,
     answer,
-    rename,
-    toggleManual,
-    deleteNode,
     moveNode,
   } = useReview();
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const editingNode = storeNodes.find((n) => n.id === editingId) ?? null;
-
-  const openEdit = useCallback((id: string) => setEditingId(id), []);
 
   const nodes: Node<FlowchartNodeData>[] = useMemo(() => {
     return storeNodes.map((n) => ({
@@ -62,8 +53,7 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
       data: {
         label: n.label,
         iconId: n.iconId,
-        isManual: n.isManual,
-        isEditable: true,
+        needsYou: n.isManual,
       },
       draggable: true,
       selectable: false,
@@ -86,32 +76,32 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
     toast({
       kind: "success",
       title: "Automation saved",
-      body: "You can run it any time from Home.",
+      body: "Pearl will run it when you need her to.",
     });
     window.setTimeout(onSaved, 900);
   };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-start justify-between gap-3 border-b border-white/40 bg-white/35 px-5 py-3">
+      <header className="flex items-start justify-between gap-3 border-b border-white/40 bg-white/35 px-5 py-3.5">
         <div>
           <h1 className="text-[16px] font-semibold tracking-tight text-[color:var(--text-1)]">
-            Review your automation
+            Here&rsquo;s what I picked up
           </h1>
           <p className="mt-0.5 text-[12px] text-[color:var(--text-2)]">
-            Click any step to edit.
+            Tell me anything to change — I&rsquo;ll adjust.
           </p>
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[60%_40%]">
+      <div className="grid min-h-0 flex-1 grid-cols-[62%_38%]">
         <div className="relative min-h-0 border-r border-white/40">
           <ReactFlow
             nodes={nodes}
             edges={edges}
             nodeTypes={flowchartNodeTypes}
             fitView
-            fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
+            fitViewOptions={{ padding: 0.18, maxZoom: 1 }}
             proOptions={{ hideAttribution: true }}
             onNodesChange={(changes) => {
               for (const c of changes) {
@@ -123,7 +113,6 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
                 }
               }
             }}
-            onNodeClick={(_, node) => openEdit(node.id)}
             nodesConnectable={false}
             elementsSelectable={false}
             panOnDrag
@@ -133,33 +122,14 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
           >
             <Background gap={18} size={1} color="rgba(15,23,42,0.06)" />
           </ReactFlow>
-          <NodeEditPanel
-            open={!!editingNode}
-            editKey={editingId ?? "none"}
-            initialLabel={editingNode?.label ?? ""}
-            initialIsManual={editingNode?.isManual ?? false}
-            onSave={(next) => {
-              if (!editingNode) return;
-              if (next.label !== editingNode.label)
-                rename(editingNode.id, next.label);
-              if (next.isManual !== editingNode.isManual)
-                toggleManual(editingNode.id, next.isManual);
-              setEditingId(null);
-            }}
-            onDelete={() => {
-              if (!editingNode) return;
-              deleteNode(editingNode.id);
-              setEditingId(null);
-            }}
-            onCancel={() => setEditingId(null)}
-          />
         </div>
 
         <aside className="flex min-h-0 flex-col">
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
             <ChatMessage variant="system">
-              I&apos;ve marked one step as manual because it submits data
-              externally. You can adjust any step the same way.
+              I tagged the last step as something you&rsquo;ll do yourself —
+              it submits to QuickBooks, so I&rsquo;ll line everything up and
+              hand it to you.
             </ChatMessage>
 
             <AnimatePresence initial={false}>
@@ -175,9 +145,9 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
                   >
                     <ChatMessage>{q.text}</ChatMessage>
                     {isAnswered ? (
-                      <div className="ml-9 inline-flex items-center gap-1.5 rounded-md bg-[rgba(22,163,74,0.08)] px-2 py-1 text-[11px] font-medium text-[color:var(--success)]">
+                      <div className="ml-9 inline-flex w-fit items-center gap-1.5 rounded-md bg-[rgba(22,163,74,0.08)] px-2 py-1 text-[11px] font-medium text-[color:var(--success)]">
                         <Check size={12} strokeWidth={2.4} />
-                        Answered
+                        Got it
                       </div>
                     ) : (
                       <InlineAnswer
@@ -190,16 +160,17 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
               })}
             </AnimatePresence>
           </div>
+
           <div className="border-t border-white/40 bg-white/35 px-4 py-3">
             <label className="flex flex-col gap-1.5">
               <span className="text-[11px] font-medium text-[color:var(--text-2)]">
-                Anything else I should know?
+                Want to tweak anything? Just tell me.
               </span>
               <div className="flex items-start gap-2">
                 <textarea
                   value={freeText}
                   onChange={(e) => setFreeText(e.target.value)}
-                  placeholder="Type a note…"
+                  placeholder="e.g., &ldquo;rename step 3 to &lsquo;update ledger&rsquo;&rdquo;"
                   rows={2}
                   className="min-h-[40px] flex-1 resize-y rounded-md border border-black/10 bg-white/90 px-2.5 py-1.5 text-[12px] text-[color:var(--text-1)] placeholder:text-[color:var(--text-3)] outline-none focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:var(--brand-ring)]"
                 />
@@ -210,7 +181,7 @@ function ReviewScreenInner({ onBack, onSaved }: ReviewScreenProps) {
                     toast({
                       kind: "success",
                       title: "Got it",
-                      body: "Added to your automation notes.",
+                      body: "I&rsquo;ll take care of it.",
                     });
                     setFreeText("");
                   }}

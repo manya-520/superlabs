@@ -4,8 +4,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { DesktopFrame } from "@/components/DesktopFrame";
-import { FloatingWindow } from "@/components/FloatingWindow";
+import { FloatingWindow, type WindowDock } from "@/components/FloatingWindow";
 import { MenuBar } from "@/components/MenuBar";
+import { MockRecordingDesktop } from "@/components/recording/MockRecordingDesktop";
 import { HomeScreen } from "@/components/screens/HomeScreen";
 import { InputMethodScreen } from "@/components/screens/InputMethodScreen";
 import { PreparationScreen } from "@/components/screens/PreparationScreen";
@@ -53,18 +54,28 @@ const SCREEN_ORDER: ScreenId[] = [
   "review",
 ];
 
-interface WindowSize {
+interface WindowLayout {
   width: number;
   height: number;
+  dock: WindowDock;
+  chrome: boolean;
+  recording?: boolean;
+  title?: string;
 }
 
-const WINDOW_SIZE_MAP: Record<ScreenId, WindowSize> = {
-  launcher: { width: 480, height: 640 },
-  home: { width: 480, height: 640 },
-  input: { width: 480, height: 640 },
-  prep: { width: 480, height: 640 },
-  recording: { width: 800, height: 640 },
-  review: { width: 900, height: 680 },
+const WINDOW_LAYOUT: Record<ScreenId, WindowLayout> = {
+  launcher: { width: 440, height: 640, dock: "center", chrome: true },
+  home: { width: 440, height: 680, dock: "center", chrome: true },
+  input: { width: 440, height: 680, dock: "center", chrome: true },
+  prep: { width: 440, height: 680, dock: "center", chrome: true },
+  recording: {
+    width: 340,
+    height: 560,
+    dock: "right",
+    chrome: true,
+    recording: true,
+  },
+  review: { width: 820, height: 620, dock: "center", chrome: true },
 };
 
 function AppShell() {
@@ -76,7 +87,7 @@ function AppShell() {
     if (screen === "launcher") goTo("home");
   };
 
-  const size = WINDOW_SIZE_MAP[screen];
+  const layout = WINDOW_LAYOUT[screen];
   const windowHidden = screen === "launcher";
 
   const prevScreen =
@@ -94,7 +105,17 @@ function AppShell() {
         <MenuBar onLogoClick={handleLogoClick} />
       )}
 
-      <FloatingWindow width={size.width} height={size.height} hidden={windowHidden}>
+      {screen === "recording" && <MockRecordingDesktop />}
+
+      <FloatingWindow
+        width={layout.width}
+        height={layout.height}
+        hidden={windowHidden}
+        dock={layout.dock}
+        chrome={layout.chrome}
+        recording={layout.recording}
+        title={layout.title}
+      >
         {screen === "home" && <HomeScreen onPick={() => goTo("input")} />}
         {screen === "input" && (
           <InputMethodScreen

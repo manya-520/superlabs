@@ -1,77 +1,110 @@
 "use client";
 
-import { BarChart3, MessageSquare, Receipt, Wallet } from "lucide-react";
-
-import { AutomationCard } from "@/components/ui/AutomationCard";
-import { useToast } from "@/components/ui/Toast";
+import { ArrowRight, Bell, FileSpreadsheet, Receipt, Sparkles, Wallet } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { useState } from "react";
 
 export interface HomeScreenProps {
   onPick: () => void;
 }
 
+interface Suggestion {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const SUGGESTIONS: Suggestion[] = [
+  { id: "invoices", label: "Process invoices from Slack", icon: Receipt },
+  { id: "categorize", label: "Categorize expenses", icon: Wallet },
+  { id: "chase", label: "Chase unpaid invoices", icon: Bell },
+  { id: "summary", label: "Summarize monthly reports", icon: FileSpreadsheet },
+];
+
 export function HomeScreen({ onPick }: HomeScreenProps) {
-  const { toast } = useToast();
+  const [draft, setDraft] = useState("");
 
   return (
-    <div className="flex h-full flex-col gap-4 px-6 py-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[24px] font-semibold tracking-tight text-[color:var(--text-1)]">
+    <div className="flex h-full flex-col gap-5 px-6 pt-7 pb-6">
+      <header className="flex flex-col gap-1.5">
+        <h1 className="text-[22px] font-semibold tracking-tight text-[color:var(--text-1)]">
           Hey Maria <span aria-hidden>👋</span>
         </h1>
-        <p className="text-[14px] text-[color:var(--text-2)]">
-          Let&apos;s automate something.
+        <p className="text-[13.5px] leading-relaxed text-[color:var(--text-2)]">
+          What should I automate for you today?
         </p>
       </header>
 
-      <div className="flex flex-col gap-2.5">
-        <AutomationCard
-          icon={MessageSquare}
-          title="Process AI tool invoices from Slack"
-          subtitle="Log, file, and enter in QuickBooks"
-          recommended
-          recommendedTooltip="Based on what you do most this month"
-          onClick={onPick}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (draft.trim()) onPick();
+        }}
+        className="group flex items-center gap-2 rounded-xl border border-white/70 bg-white/85 px-3.5 py-2.5 shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-all focus-within:border-[color:var(--brand-border)] focus-within:ring-2 focus-within:ring-[color:var(--brand-ring)]"
+      >
+        <Sparkles
+          size={15}
+          strokeWidth={1.8}
+          className="flex-none text-[color:var(--brand)]"
+          aria-hidden
         />
-        <AutomationCard
-          icon={Wallet}
-          title="Categorize expenses"
-          subtitle="Tag expenses by category"
-          onClick={() =>
-            toast({
-              kind: "info",
-              title: "Coming soon",
-              body: "This automation isn't ready yet.",
-            })
-          }
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Tell me what you&#39;d like to automate…"
+          className="flex-1 bg-transparent text-[13.5px] text-[color:var(--text-1)] placeholder:text-[color:var(--text-3)] outline-none"
+          aria-label="Describe what to automate"
         />
-        <AutomationCard
-          icon={Receipt}
-          title="Reconcile receipts"
-          subtitle="Match receipts to transactions"
-          onClick={() =>
-            toast({
-              kind: "info",
-              title: "Coming soon",
-              body: "This automation isn't ready yet.",
-            })
-          }
-        />
-        <AutomationCard
-          icon={BarChart3}
-          title="Generate expense reports"
-          subtitle="Monthly expense summaries"
-          onClick={() =>
-            toast({
-              kind: "info",
-              title: "Coming soon",
-              body: "This automation isn't ready yet.",
-            })
-          }
-        />
+        <button
+          type="submit"
+          disabled={!draft.trim()}
+          aria-label="Continue"
+          className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-[color:var(--brand)] text-white transition-opacity hover:bg-[color:var(--brand-hover)] disabled:opacity-40 disabled:pointer-events-none"
+        >
+          <ArrowRight size={14} strokeWidth={2.2} />
+        </button>
+      </form>
+
+      <div className="flex flex-col gap-2">
+        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[color:var(--text-3)]">
+          Or try one of these
+        </div>
+        <ul className="flex flex-col">
+          {SUGGESTIONS.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={onPick}
+                className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors hover:bg-white/55 focus-visible:bg-white/55"
+              >
+                <span
+                  className="flex h-7 w-7 flex-none items-center justify-center rounded-md bg-[rgba(133,57,255,0.08)] text-[color:var(--brand)]"
+                  aria-hidden
+                >
+                  <s.icon size={14} strokeWidth={1.9} />
+                </span>
+                <span className="flex-1 text-[13px] font-medium text-[color:var(--text-1)]">
+                  {s.label}
+                </span>
+                <span
+                  className="text-[color:var(--text-3)] opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100"
+                  aria-hidden
+                >
+                  <ArrowRight size={13} strokeWidth={1.8} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <footer className="mt-auto text-center text-[11px] text-[color:var(--text-3)]">
-        You can always add your own automations later.
+      <footer className="mt-auto flex items-center justify-center gap-1.5 text-[11px] text-[color:var(--text-3)]">
+        <span
+          className="h-1.5 w-1.5 rounded-full bg-[color:var(--brand)]"
+          aria-hidden
+        />
+        Pearl · your Superlabs agent
       </footer>
     </div>
   );

@@ -3,14 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  RECORDING_MESSAGES,
-  RECORDING_NODES,
   RECORDING_DURATION_MS,
+  RECORDING_NODES,
 } from "./scriptedRecording";
 
 export interface ScriptedRecordingState {
   visibleNodeIds: Set<string>;
-  visibleMessageIds: Set<string>;
   elapsedMs: number;
   isComplete: boolean;
   /** 0 – 1 progress through the full recording timeline. */
@@ -25,10 +23,10 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
- * Drives Screen 5's scripted recording. A polling interval advances the
- * visible-node / visible-message sets by wall-clock time. The state is
- * initialized from the media query so reduced-motion users skip directly
- * to the end without setting state inside an effect.
+ * Drives the recording screen. A polling interval advances the
+ * visible-node set by wall-clock time. The state is initialized from the
+ * reduced-motion media query so those users skip directly to the end
+ * without setting state inside an effect.
  */
 export function useScriptedRecording(enabled: boolean): ScriptedRecordingState {
   const [elapsedMs, setElapsedMs] = useState<number>(() =>
@@ -56,12 +54,8 @@ export function useScriptedRecording(enabled: boolean): ScriptedRecordingState {
     const visibleNodeIds = new Set(
       RECORDING_NODES.filter((n) => elapsedMs >= n.appearAtMs).map((n) => n.id),
     );
-    const visibleMessageIds = new Set(
-      RECORDING_MESSAGES.filter((m) => elapsedMs >= m.appearAtMs).map((m) => m.id),
-    );
     return {
       visibleNodeIds,
-      visibleMessageIds,
       elapsedMs,
       isComplete: elapsedMs >= RECORDING_DURATION_MS,
       progress: Math.min(1, elapsedMs / RECORDING_DURATION_MS),
