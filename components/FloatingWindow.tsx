@@ -1,10 +1,10 @@
 "use client";
 
-import { motion, useDragControls } from "framer-motion";
+import { motion, useDragControls, type DragControls } from "framer-motion";
 import Image from "next/image";
 import { useRef, type ReactNode } from "react";
 
-export type WindowDock = "center" | "right";
+export type WindowDock = "center" | "right" | "mini";
 
 export interface FloatingWindowProps {
   width: number;
@@ -18,6 +18,27 @@ export interface FloatingWindowProps {
   recording?: boolean;
   /** Custom title shown in the chrome. Defaults to "Superlabs". */
   title?: string;
+  /**
+   * Override the body surface class. Defaults preserve the existing
+   * `glass`/`glass-strong` behavior. Pass a custom class (e.g. a dark fill)
+   * for non-glass surfaces like the Zoom call.
+   */
+  bodyClassName?: string;
+  /**
+   * Render a custom chrome instead of the built-in macOS title bar. Receives
+   * the window's `dragControls` so the custom chrome can wire its own
+   * pointer-down handler to start the drag. When provided, `chrome` and
+   * `title`/`recording` are ignored.
+   */
+  renderChrome?: (dragControls: DragControls) => ReactNode;
+  /**
+   * Optional stable key override. When provided, the window does NOT remount
+   * on dock changes — useful for keeping internal call state when the user
+   * toggles a Zoom-style "minimize to corner" mode (center → mini). The
+   * caller is responsible for ensuring the dock change is visually safe
+   * (drag transform may not perfectly track the new anchor).
+   */
+  keyOverride?: string;
   children: ReactNode;
 }
 
@@ -29,6 +50,9 @@ export function FloatingWindow({
   chrome = true,
   recording = false,
   title = "Superlabs",
+  bodyClassName,
+  renderChrome,
+  keyOverride,
   children,
 }: FloatingWindowProps) {
   const constraintsRef = useRef<HTMLDivElement>(null);
@@ -36,17 +60,25 @@ export function FloatingWindow({
 
   // Center dock keeps the window horizontally centered and stays within the
   // viewport on narrower windows. Right dock pins the window to the right
-  // edge for the "tucked" recording state.
-  const positionStyle =
-    dock === "right"
-      ? {
-          top: `calc(50% - ${height / 2}px + 14px)`,
-          right: 24,
-        }
-      : {
-          top: `calc(50% - ${height / 2}px + 14px)`,
-          left: `clamp(16px, calc(50% - ${width / 2}px), calc(100% - ${width}px - 16px))`,
-        };
+  // edge for the "tucked" recording state. Mini dock pins to the
+  // bottom-right corner for Zoom-style minimize-to-corner.
+  let positionStyle: Record<string, string | number>;
+  if (dock === "right") {
+    positionStyle = {
+      top: `calc(50% - ${height / 2}px + 14px)`,
+      right: 24,
+    };
+  } else if (dock === "mini") {
+    positionStyle = {
+      bottom: 24,
+      right: 24,
+    };
+  } else {
+    positionStyle = {
+      top: `calc(50% - ${height / 2}px + 14px)`,
+      left: `clamp(16px, calc(50% - ${width / 2}px), calc(100% - ${width}px - 16px))`,
+    };
+  }
 
   return (
     <>
@@ -60,7 +92,10 @@ export function FloatingWindow({
         // center and right docks. Without this, framer-motion keeps its
         // internal drag transform around from the previous position and the
         // element never actually moves to the new anchor.
-        key={dock}
+        // Callers that need to preserve internal state across dock changes
+        // (e.g. the Pearl call switching to a mini-dock when sharing) pass
+        // a keyOverride so we use a stable key instead.
+        key={keyOverride ?? dock}
         role="application"
         aria-label="Superlabs window"
         aria-hidden={hidden}
@@ -77,11 +112,15 @@ export function FloatingWindow({
             : { opacity: 1, scale: 1, pointerEvents: "auto" }
         }
         transition={{ type: "spring", stiffness: 220, damping: 26 }}
-        className={`${recording ? "glass-strong" : "glass"} absolute z-[10] overflow-hidden rounded-2xl text-[color:var(--text-1)]`}
+        className={`${
+          bodyClassName ?? (recording ? "glass-strong" : "glass")
+        } absolute z-[10] overflow-hidden rounded-2xl text-[color:var(--text-1)]`}
         style={{ ...positionStyle, width, height }}
       >
         <div className="flex h-full flex-col">
-          {chrome && (
+          {renderChrome
+            ? renderChrome(dragControls)
+            : chrome && (
             <div
               onPointerDown={(event) => {
                 dragControls.start(event, { snapToCursor: false });
